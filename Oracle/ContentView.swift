@@ -8,14 +8,26 @@
 import SwiftUI
 
 struct ContentView: View {
+    @State var evaluator = LLMEvaluator()
+    @State var userPrompt = ""
+    
     var body: some View {
         VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
+            TextField("Ask something...", text: $userPrompt)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+                .padding()
+            
+            Button("Generate") {
+                Task {
+                    await evaluator.generate(prompt: userPrompt)
+                }
+            }
+            
+            ScrollView {
+                Text(evaluator.output)
+                    .padding()
+            }
         }
-        .padding()
     }
 }
 
