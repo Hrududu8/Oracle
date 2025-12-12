@@ -6,69 +6,53 @@
 //
 
 import Foundation
-import MLX
-import MLXLLM
-import MLXLMCommon
-import MLXRandom
-import Combine
-import Tokenizers
+import FoundationModels
 
-@MainActor
 @Observable
-class LLMEvaluator {
-    var output = ""
-    var running = false
+class Oracle {
     
-    private let modelConfig = LLMRegistry.gemma_2_2b_it_4bit
-    private let parameters = GenerateParameters(temperature: 0.7)
-    private var modelContainer: ModelContainer? = nil
+    private var session = LanguageModelSession()
     
-    func loadModel() async throws {
-        //YOU ARE HERE RUKESH.
-        //I think it's trying to run the prompt
-        //before the model is downloaded.
-        guard modelContainer == nil else { return }
-        
-        MLX.GPU.set(cacheLimit: 20 * 1024 * 1024)
-        modelContainer = try await LLMModelFactory.shared.loadContainer(
-            configuration: modelConfig
-        ) { progress in
-            print("Downloading model: \(Int(progress.fractionCompleted * 100))%")
-        }
-    }
-    
-    func generate(prompt: String, systemPrompt: String = "You are a helpful assistant.") async {
-            guard !running else { return }
-            running = true
-            output = "Generating..."
-
-            do {
-                try await loadModel()
-
-                let result = try await modelContainer!.perform { context in
-                    let input = try await context.processor.prepare(
-                        input: .init(messages: [
-                            ["role": "system", "content": systemPrompt],
-                            ["role": "user", "content": prompt]
-                        ])
-                    )
-
-                    return try MLXLMCommon.generate(
-                        input: input,
-                        parameters: parameters,
-                        context: context
-                    ) { tokens in
-                        let partial = context.tokenizer.decode(tokens: tokens)
-                        Task { @MainActor in self.output = partial }
-                        return tokens.count >= 1000 ? .stop : .more
-                    }
-                }
-
-                output = result.output
-            } catch {
-                output = "Error: \(error.localizedDescription)"
+    func generateResponse(to prompt: String) async -> String {
+        var reply: String
+        do {
+            reply = try await session.respond(to: prompt).content
+        } catch let error as LanguageModelSession.GenerationError {
+            switch error {
+            case .guardrailViolation(let context):
+                reply = "Guardrail violation: \(context.debugDescription)"
+            case .decodingFailure(let context):
+                reply = "Decoding error: \(context.debugDescription)"
+            case .rateLimited(let context):
+                reply = "Rate limit exceed: \(context.debugDescription)"
+            default:
+                reply = "Other error: \(error.localizedDescription)"
             }
-
-            running = false
+            if let failureReason = error.failureReason {
+                reply += "\nFailure reason: \(failureReason)"
+            }
+            if let recoverySuggestion = error.recoverySuggestion {
+                reply += "\nRecovery suggestion: \(recoverySuggestion)"
+            }
+        }
+        catch {
+            fatalError("Failed to generate response")
+        }
+        return reply
+    }
+    
+    func checkAvailability() -> String? {
+        switch SystemLanguageModel.default.availability {
+        case .available:
+            return nil
+        case .unavailable(.appleIntelligenceNotEnabled):
+            return "Please enable Apple Intelligence in your device settings."
+        case .unavailable(.deviceNotEligible):
+            return "Device not eligible"
+        case .unavailable(.modelNotReady):
+            return "Model not ready"
         }
     }
+    
+}
+

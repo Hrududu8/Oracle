@@ -8,25 +8,32 @@
 import SwiftUI
 
 struct ContentView: View {
-    @State var evaluator = LLMEvaluator()
-    @State var userPrompt = ""
+    
+    @State var oracle = Oracle()
+    @State var prompt = ""
+    @State var response = ""
     
     var body: some View {
-        VStack {
-            TextField("Ask something...", text: $userPrompt)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-                .padding()
+        if oracle.checkAvailability() != nil {
+            Text("oracle not available") // need to say why
+        } else {
             
-            Button("Generate") {
-                Task {
-                    await evaluator.generate(prompt: userPrompt)
+            
+            VStack {
+                TextField("Prompt", text: $prompt)
+                    .textFieldStyle(.roundedBorder)
+                Button("Generate") {
+                    Task {
+                        response = await oracle.generateResponse(to: prompt)
+                    }
+                }
+                .disabled(prompt.isEmpty)
+                
+                ScrollView {
+                    Text(response)
                 }
             }
-            
-            ScrollView {
-                Text(evaluator.output)
-                    .padding()
-            }
+            .padding()
         }
     }
 }
