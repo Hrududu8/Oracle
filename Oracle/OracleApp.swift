@@ -10,8 +10,9 @@ import SwiftUI
 @main
 struct OracleApp: App {
     var body: some Scene {
+        let oracle = Oracle()
         WindowGroup {
-            ContentView()
+            InitialView(oracle: oracle)
         }
     }
 }

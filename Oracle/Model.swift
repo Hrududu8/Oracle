@@ -11,7 +11,12 @@ import FoundationModels
 @Observable
 class Oracle {
     
-    private var session = LanguageModelSession()
+    var session = LanguageModelSession()
+    
+    struct OracleAvailable {
+        var isAvailable = false
+        var reason = "Loading..."
+    }
     
     func generateResponse(to prompt: String) async -> String {
         var reply: String
@@ -41,16 +46,17 @@ class Oracle {
         return reply
     }
     
-    func checkAvailability() -> String? {
+    func checkAvailability() -> Oracle.OracleAvailable {
         switch SystemLanguageModel.default.availability {
+        //TODO: replace these with an enum
         case .available:
-            return nil
+            return OracleAvailable(isAvailable: true, reason: "")
         case .unavailable(.appleIntelligenceNotEnabled):
-            return "Please enable Apple Intelligence in your device settings."
+            return OracleAvailable(isAvailable: false, reason: "Please enable Apple Intelligence in your device settings.")
         case .unavailable(.deviceNotEligible):
-            return "Device not eligible"
+            return OracleAvailable(isAvailable: false, reason: "Device not eligible for this model.")
         case .unavailable(.modelNotReady):
-            return "Model not ready"
+            return OracleAvailable(isAvailable: false, reason: "Model not ready.")
         }
     }
     
