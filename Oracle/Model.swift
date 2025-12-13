@@ -8,10 +8,35 @@
 import Foundation
 import FoundationModels
 
+enum OracleStatus: CustomStringConvertible {
+    
+    
+    case ready, guardRailViolation, decodingError, rateLimitError, unknownError
+    
+    var description: String {
+        switch self {
+        case .ready:
+            return "Ready"
+        case .guardRailViolation:
+            return "Guardrail Violation"
+        case .decodingError:
+            return "Decoding Error"
+        case .rateLimitError:
+            return "Rate Limit Error"
+        default:
+            return "Unknown Error"
+        }
+    }
+}
+
 @Observable
 class Oracle {
     
-    var session = LanguageModelSession()
+    private var session = LanguageModelSession()
+    
+    var isReady: Bool { session.isResponding }
+    var isResponding: Bool { session.isResponding }
+    
     
     struct OracleAvailable {
         var isAvailable = false

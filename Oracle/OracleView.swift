@@ -24,10 +24,10 @@ struct OracleView: View {
                     response = await oracle.generateResponse(to: prompt)
                 }
             }
-            .disabled(prompt.isEmpty || oracle.session.isResponding)
+            .disabled(prompt.isEmpty || oracle.isReady)
             
             ScrollView {
-                if oracle.session.isResponding {
+                if oracle.isResponding {
                     ProgressView()
                 } else {
                     Text(.init(response))
