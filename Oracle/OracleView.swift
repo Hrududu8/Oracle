@@ -22,12 +22,13 @@ struct OracleView: View {
             Button("Generate") {
                 Task {
                     response = await oracle.streamResponse(to: prompt)
+                    prompt = ""
                 }
             }
             .disabled(prompt.isEmpty || oracle.isReady)
             
             ScrollView {
-                Text(oracle.response)
+                Text(.init(oracle.response))
             }
         }
         .padding()
