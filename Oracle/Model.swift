@@ -33,14 +33,29 @@ enum OracleStatus: CustomStringConvertible {
 class Oracle {
     
     private var session = LanguageModelSession()
+    private var rawResponse = ""
+    
     
     var isReady: Bool { session.isResponding }
     var isResponding: Bool { session.isResponding }
-    
+    var response: String { .init(rawResponse) }
     
     struct OracleAvailable {
         var isAvailable = false
         var reason = "Loading..."
+    }
+    
+    func streamResponse(to: String) async -> String {
+        Task {
+            do {
+                for try await partialResponse in session.streamResponse(to: Prompt(to)) {
+                    self.rawResponse = .init(partialResponse.content)
+                }
+            } catch {
+                fatalError("Streaming error")
+            }
+        }
+        return self.rawResponse
     }
     
     func generateResponse(to prompt: String) async -> String {

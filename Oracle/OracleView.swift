@@ -21,17 +21,13 @@ struct OracleView: View {
                 .textFieldStyle(.roundedBorder)
             Button("Generate") {
                 Task {
-                    response = await oracle.generateResponse(to: prompt)
+                    response = await oracle.streamResponse(to: prompt)
                 }
             }
             .disabled(prompt.isEmpty || oracle.isReady)
             
             ScrollView {
-                if oracle.isResponding {
-                    ProgressView()
-                } else {
-                    Text(.init(response))
-                }
+                Text(oracle.response)
             }
         }
         .padding()
